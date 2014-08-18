@@ -23,6 +23,7 @@ WriteMakefile(
 		'Flickr::API' => 1.09,
 		'Pod::Usage' => 1,
 		'Getopt::Long' => 1,
+		'XML::Simple' => 2.0,
 	},
 	'EXE_FILES' => [ 'flickr_upload' ],
 	'clean' => { FILES => 'ChangeLog META.yml' },

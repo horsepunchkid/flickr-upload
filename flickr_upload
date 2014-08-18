@@ -18,6 +18,9 @@ my $auth = 0;
 my $progress = 0;
 my $check = 0;
 my $report = 1;
+my $reverse = 0;
+my $photoset;
+my @photo_ids;
 
 if( open CONFIG, "< $ENV{HOME}/.flickrrc" ) {
 	while( <CONFIG> ) {
@@ -58,6 +61,8 @@ GetOptions(
 	'check' => \$check,
 	'report!' => \$report,
 	'option=s' => \%args,
+	'reverse' => \$reverse,
+	'set=s' => \$photoset,
 ) or pod2usage(2);
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
@@ -129,7 +134,10 @@ $args{'async'} = 1;
 my %tickets;
 
 $| = 1;
-while( my $photo = shift @ARGV ) {
+
+my @argv = $reverse ? reverse @ARGV : @ARGV;
+
+while( my $photo = shift @argv ) {
 	my $rc;
 
 	if ($progress) {
@@ -188,6 +196,7 @@ if( $report ) {
 				# uploaded, got photoid
 				print "$tickets{$_->{id}} is at " .
 				"http://www.flickr.com/tools/uploader_edit.gne?ids=$_->{photoid}\n";
+				push @photo_ids, $_->{photoid};
 				delete $tickets{$_->{id}};
 			} else {
 				print "$tickets{$_->{id}} failed to get photoid\n";
@@ -195,6 +204,30 @@ if( $report ) {
 			}
 		}
 	} while( %tickets );
+}
+
+if ( $photoset ) {
+	if ( scalar(@photo_ids)==0 ) {
+		warn "Cannot create photoset '$photoset', no photos were successfully uploaded (or, you didn't wait for the upload verification)\n";
+	}
+	else {
+		my $primary_photo_id = shift @photo_ids;
+		warn "Creating photoset '$photoset', primary_photo_id = $primary_photo_id\n";
+		my $photoset_id = $ua->photosets_create (
+			title => $photoset,
+			primary_photo_id => $primary_photo_id,
+			'auth_token' => $args{'auth_token'} );
+		warn "Created photoset, id = $photoset_id\n";
+
+		while ( my $photo_id = shift @photo_ids ) {
+			warn "Adding photoID $photo_id to photoset $photoset...\n";
+			my $rc = $ua->photosets_addphoto (
+				photoset_id => $photoset_id,
+				photo_id => $photo_id,
+				'auth_token' => $args{'auth_token'} );
+			warn "Adding photoID $photo_id failed...\n" unless $rc;
+		}
+	}
 }
 
 exit 0;
@@ -326,6 +359,20 @@ to define a tag with spaces, the quotes have to be part of the tag itself.
 The following works in L<bash>:
 
   flickr_upload --tag='"tag one"' --tag='"tag two"' image.jpg
+
+=item --reverse
+
+Reverse the list of supplied images. Useful when uploading contents of 
+directory with sorted filenames. Following example will upload the last 
+glob expanded file as first and vice versa. The last file will appear 
+first in target photo stream.
+
+  flickr_upload --reverse *.jpg
+
+=item --set <NAME>
+
+After successfully uploading all photos, create a new set named "NAME", and
+add the photos into the set. One (random) photo will be the set's thumbnail.
 
 =item --option key=value
 

@@ -7,8 +7,10 @@ use LWP::UserAgent;
 use HTTP::Request::Common;
 use Flickr::API;
 use XML::Parser::Lite::Tree;
+use XML::Simple qw(:strict);
+use Carp;
 
-our $VERSION = '1.4';
+our $VERSION = '1.5';
 
 our @ISA = qw(Flickr::API);
 
@@ -399,6 +401,102 @@ sub file_length_in_encoded_chunk
 			return $size;
 		}
 	}
+}
+
+=head2 photosets_create
+
+	Calls Flickr's "flickr.photosets.create" method,
+	to create a new Set.
+
+	The set will use the PrimaryPhotoID as the thumbnail photo.
+
+	returns: UNDEF on failure, PhotosetID on success.
+
+	my $photoset_id = $ua->photosets_create( title => 'title',
+	                               description => 'description',
+				       primary_photo_id => ID,
+				       auth_token => AUTH_TOKEN );
+
+	$ua->photosets_addphoto ( photoset_id => $photoset_id,
+	                          photo_id => ID );
+
+=cut
+sub photosets_create {
+	my $self = shift;
+	die '$self is not a Flickr::API' unless $self->isa('Flickr::API');
+
+	my %args = @_;
+	carp "Missing 'auth_token' parameter for photosets_create()"
+		unless exists $args{'auth_token'};
+	my $auth_token = $args{'auth_token'};
+	carp "Missing 'title' parameter for photosets_create()"
+		unless exists $args{'title'} && length($args{'title'})>0;
+	my $title = $args{'title'};
+	carp "Missing 'primary_photo_id' parameter for photosets_create()"
+		unless exists $args{'primary_photo_id'};
+	my $primary_photo_id = $args{'primary_photo_id'};
+	carp "Invalid primary_photo_id ($primary_photo_id) value (expecting numeric ID)" unless $primary_photo_id =~ /^[0-9]+$/;
+	my $description = ( exists $args{'description'} ) ? $args{'description'} : "" ;
+
+	my $res = $self->execute_method( 'flickr.photosets.create',
+		{ 'title' => $title,
+		  'description' => $description,
+		  'primary_photo_id' => $primary_photo_id,
+		  'auth_token' => $auth_token,
+	  } ) ;
+	#TODO: Add detailed error messages
+	return undef unless defined $res and $res->{success};
+
+	my $hash = XMLin($res->decoded_content(), KeyAttr=>[], ForceArray=>0);
+	my $photoset_id = $hash->{photoset}->{id};
+	if ( ! defined $photoset_id ) {
+		warn "Failed to extract photoset ID from response:\n" .
+			$res->decoded_content() . "\n\n";
+		return undef;
+	}
+	return $photoset_id  ;
+}
+
+=head2 photosets_addphoto
+
+	Calls Flickr's "flickr.photosets.addPhoto" method,
+	to add a (existing) photo to an existing set.
+
+	returns: UNDEF on failure, TRUE on success.
+
+	my $photoset_id = $ua->photosets_create( title => 'title',
+	                               description => 'description',
+				       primary_photo_id => ID,
+				       auth_token => AUTH_TOKEN );
+
+	$ua->photosets_addphoto ( photoset_id => $photoset_id,
+	                          photo_id => ID );
+
+=cut
+sub photosets_addphoto {
+	my $self = shift;
+	die '$self is not a Flickr::API' unless $self->isa('Flickr::API');
+
+	my %args = @_;
+	carp "Missing 'auth_token' parameter for photosets_addphoto()"
+		unless exists $args{'auth_token'};
+	my $auth_token = $args{'auth_token'};
+	carp "Missing 'photoset_id' parameter for photosets_addphoto()"
+		unless exists $args{'photoset_id'};
+	my $photoset_id = $args{'photoset_id'};
+	carp "Missing 'photo_id' parameter for photosets_addphoto()"
+		unless exists $args{'photo_id'};
+	my $photo_id = $args{'photo_id'};
+
+	my $res = $self->execute_method( 'flickr.photosets.addPhoto',
+		{ 'photoset_id' => $photoset_id,
+		  'photo_id' => $photo_id,
+		  'auth_token' => $auth_token,
+	  } ) ;
+	#TODO: Add detailed error messages
+	return undef unless defined $res;
+
+	return $res->{success};
 }
 
 1;
