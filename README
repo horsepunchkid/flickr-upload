@@ -16,9 +16,13 @@ To install this module type the following:
 DEPENDENCIES
 ============
 
-- LWP
+- LWP::UserAgent
+- HTTP::Request::Common
 - XML::Parser::Lite::Tree
 - Flickr::API
+- Pod::Usage
+- Getopt::Long
+- XML::Simple
 
 EXAMPLES
 ========
