@@ -18,7 +18,6 @@ DEPENDENCIES
 
 - LWP::UserAgent
 - HTTP::Request::Common
-- XML::Parser::Lite::Tree
 - Flickr::API
 - Pod::Usage
 - Getopt::Long
