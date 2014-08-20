@@ -11,4 +11,4 @@ t/progress_request.t
 t/request.t
 t/testimage.jpg
 t/upload.t
-Upload.pm
+lib/Flickr/Upload.pm

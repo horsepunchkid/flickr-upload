@@ -13,7 +13,7 @@ END
 
 WriteMakefile(
 	NAME              => 'Flickr::Upload',
-	VERSION_FROM      => 'Upload.pm',
+	VERSION_FROM      => 'lib/Flickr/Upload.pm',
 	ABSTRACT          => 'Module for uploading images to flickr.com',
 	AUTHOR            => 'Christophe Beauregard <cpb@cpan.org>',
 	PREREQ_PM         => {
