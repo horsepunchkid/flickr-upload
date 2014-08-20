@@ -6,35 +6,12 @@ use warnings;
 use LWP::UserAgent;
 use HTTP::Request::Common;
 use Flickr::API;
-use XML::Parser::Lite::Tree;
 use XML::Simple qw(:strict);
 use Carp;
 
 our $VERSION = '1.5';
 
 our @ISA = qw(Flickr::API);
-
-sub response_tag {
-	my $t = shift;
-	my $node = shift;
-	my $tag = shift;
-
-	return undef unless defined $t and exists $t->{'children'};
-
-	for my $n ( @{$t->{'children'}} ) {
-		next unless defined $n and exists $n->{'name'} and exists $n->{'children'};
-		next unless $n->{'name'} eq $node;
-
-		for my $m (@{$n->{'children'}} ) {
-			next unless exists $m->{'name'}
-				and $m->{'name'} eq $tag
-				and exists $m->{'children'};
-
-			return $m->{'children'}->[0]->{'content'};
-		}
-	}
-	return undef;
-}
 
 =head1 NAME
 
@@ -273,7 +250,7 @@ sub upload_request {
 	# Try 3 times to upload data. Without this flickr_upload is bound
 	# to die on large uploads due to some miscellaneous network
 	# issues. Timeouts on flickr or something else.
-	my ($res, $tree);
+	my ($res, $xml);
 	my $tries = 3;
 	for my $try (1 .. $tries) {
 		# Try to upload
@@ -281,8 +258,8 @@ sub upload_request {
 		return () unless defined $res;
 
 		if ($res->is_success) {
-			$tree = XML::Parser::Lite::Tree::instance()->parse($res->decoded_content());
-			return () unless defined $tree;
+			$xml = XMLin($res->decoded_content, KeyAttr=>[], ForceArray=>0);
+			return () unless defined $xml;
 			last;
 		} else {
 			my $what_next = ($try == $tries ? "giving up" : "trying again");
@@ -293,8 +270,8 @@ sub upload_request {
 		}
 	}
 
-	my $photoid = response_tag($tree, 'rsp', 'photoid');
-	my $ticketid = response_tag($tree, 'rsp', 'ticketid');
+	my $photoid = $xml->{photoid};
+	my $ticketid = $xml->{ticketid};
 	unless( defined $photoid or defined $ticketid ) {
 		print STDERR "upload failed:\n", $res->decoded_content(), "\n";
 		return undef;
