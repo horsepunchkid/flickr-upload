@@ -5,6 +5,7 @@ use warnings;
 use Flickr::Upload;
 use Getopt::Long;
 use Pod::Usage;
+use Config::Simple;
 
 # get your own key and secret from http://www.flickr.com/services/api/key.gne
 my $api_key = '8dcf37880da64acfe8e30bb1091376b7';
@@ -19,28 +20,22 @@ my $progress = 0;
 my $check = 0;
 my $report = 1;
 my $reverse = 0;
+my $config_file = "$ENV{HOME}/.flickrrc";
 my $photoset;
 my @photo_ids;
 
-if( open CONFIG, "< $ENV{HOME}/.flickrrc" ) {
-	while( <CONFIG> ) {
-		chomp;
-		s/#.*$//;	# strip comments
+if(-r $config_file) {
+    my %config;
+    Config::Simple->import_from($config_file, \%config);
+    # Strip off "default" namespace from Config::Simple
+    $config{substr($_, 8)} = delete $config{$_} for keys %config;
 
-		next unless m/^\s*([a-z_]+)=(.+)\s*$/io;
-		if( $1 eq "key" ) {
-			$api_key = $2;
-		} elsif( $1 eq "secret" ) {
-			$not_so_secret = $2;
-		} elsif( $1 eq "progress" ) {
-			$progress = $2;
-		} elsif( $1 eq "report" ) {
-			$report = $2;
-		} else {
-			$args{$1} = $2;
-		}
-	}
-	close CONFIG;
+    $api_key        = $config{key}      if defined $config{key};
+    $not_so_secret  = $config{secret}   if defined $config{secret};
+    $progress       = $config{progress} if defined $config{progress};
+    $report         = $config{report}   if defined $config{report};
+
+    $args{$_} = $config{$_} for keys %config;
 }
 
 GetOptions(
