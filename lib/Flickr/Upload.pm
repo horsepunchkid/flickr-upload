@@ -7,6 +7,8 @@ use LWP::UserAgent;
 use HTTP::Request::Common;
 use Flickr::API;
 use XML::Simple qw(:strict);
+use Digest::MD5 qw(md5_hex);
+use Encode qw(encode_utf8);
 use Carp;
 
 our $VERSION = '1.5';
@@ -209,8 +211,7 @@ sub make_upload_request {
 	my $photo = $args{photo};
 	delete $args{photo};
 
-	# HACK: sign_args() is an internal Flickr::API method
-	$args{'api_sig'} = $self->sign_args(\%args);
+	$args{'api_sig'} = $self->_sign_args(\%args);
 
 	# unlikely that the caller would set up the photo as an array,
 	# but...
@@ -474,6 +475,21 @@ sub photosets_addphoto {
 	return undef unless defined $res;
 
 	return $res->{success};
+}
+
+# Private method adapted from Flickr::API
+# See: https://www.flickr.com/services/api/auth.howto.web.html
+sub _sign_args {
+    my $self = shift;
+    my $args = shift;
+
+    my $sig = $self->{api_secret};
+
+    for(sort { $a cmp $b } keys %$args) {
+        $sig .= $_ . (defined($args->{$_}) ? $args->{$_} : "");
+    }
+
+    return md5_hex($self->{unicode} ? encode_utf8($sig) : $sig);
 }
 
 1;
