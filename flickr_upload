@@ -6,7 +6,7 @@ use Flickr::Upload;
 use Getopt::Long;
 use Pod::Usage;
 
-# get your own key and secret from http://www.flickr.com/services/api/key.gne
+# get your own key and secret from https://www.flickr.com/services/api/key.gne
 my $api_key = '8dcf37880da64acfe8e30bb1091376b7';
 my $not_so_secret = '2f3695d0562cdac7';
 
@@ -195,7 +195,7 @@ if( $report ) {
 			} elsif( $_->{complete} == 1 ) {
 				# uploaded, got photoid
 				print "$tickets{$_->{id}} is at " .
-				"http://www.flickr.com/tools/uploader_edit.gne?ids=$_->{photoid}\n";
+				"https://www.flickr.com/tools/uploader_edit.gne?ids=$_->{photoid}\n";
 				push @photo_ids, $_->{photoid};
 				delete $tickets{$_->{id}};
 			} else {
@@ -389,7 +389,7 @@ options:
   flickr_upload --option is_public=1 --option title='cats' two_cats.jpg
 
 While Flickr may add new options at any time (see
-L<http://flickr.com/services/api/upload.api.html> for the most up-to-date
+L<https://www.flickr.com/services/api/upload.api.html> for the most up-to-date
 list), currently known options include:
 
 =over 4
@@ -398,13 +398,13 @@ list), currently known options include:
 
 Override the default C<safety_level> notation.
 Set to 1 for Safe, 2 for Moderate, or 3 for Restricted.
-Refer to L<http://www.flickr.com/help/filters/>.
+Refer to L<https://www.flickr.com/help/filters/>.
 
 =item --option content_type=<1|2|3>
 
 Override the default C<content_type> notation.
 Set to 1 for Photo, 2 for Screenshot, or 3 for Art/Illustration.
-Refer to L<http://www.flickr.com/help/filters/>.
+Refer to L<https://www.flickr.com/help/filters/>.
 
 =item --option hidden=<1|2>
 
@@ -480,7 +480,7 @@ driven by how Flickr manages third-party applications:
    cpb@earth:~$ flickr_upload --auth
 	1. Enter the following URL into your browser
 
-	http://flickr.com/services/auth?api_sig=<...>&frob=<...>&perms=write&api_key=<...>
+	https://www.flickr.com/services/auth?api_sig=<...>&frob=<...>&perms=write&api_key=<...>
 
 	2. Follow the instructions on the web page
 	3. Hit <Enter> when finished.
@@ -528,8 +528,8 @@ L<flickr.com>
 
 L<Flickr::Upload>
 
-L<http://flickr.com/services/api/>
+L<https://www.flickr.com/services/api/>
 
-L<http://www.flickr.com/help/filters/>
+L<https://www.flickr.com/help/filters/>
 
 =cut
