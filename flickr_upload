@@ -436,12 +436,13 @@ the configuration file:
 
 Report the status of each upload ticket after uploading the batch via
 L<Flickr::Upload's check_upload
-method|Flickr::Upload/check_upload>. On by default.
+method|Flickr::Upload/check_upload>. On by default. Checking the status can
+be canceled by pressing ctrl-C.
 
 The default is to display a report after each upload. That can be
 changed in the configuration file:
 
-    echo progress=0 >~/.flickrrc
+    echo report=0 >~/.flickrrc
 
 =item --key <api_key>
 
