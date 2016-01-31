@@ -53,7 +53,7 @@ Upload an image to L<flickr.com>.
 
 Instantiates a L<Flickr::Upload> instance. The C<key> argument is your
 API key and the C<secret> is the API secret associated with it. To get an
-API key and secret, go to L<http://www.flickr.com/services/api/key.gne>.
+API key and secret, go to L<https://www.flickr.com/services/api/key.gne>.
 
 The resulting L<Flickr::Upload> instance is a subclass of L<Flickr::API>
 and can be used for any other Flickr API calls.  As such,
@@ -80,11 +80,11 @@ the uploader.
 Returns the resulting identifier of the uploaded photo on success,
 C<undef> on failure. According to the API documentation, after an upload the
 user should be directed to the page
-L<http://www.flickr.com/tools/uploader_edit.gne?ids=$photoid>.
+L<https://www.flickr.com/tools/uploader_edit.gne?ids=$photoid>.
 
 If the C<async> option is non-zero, the photo will be uploaded
 asynchronously and a successful upload returns a ticket identifier. See
-L<http://flickr.com/services/api/upload.async.html>. The caller can then
+L<https://www.flickr.com/services/api/upload.async.html>. The caller can then
 periodically poll for a photo id using the C<check_upload> method. Note
 that photo and ticket identifiers aren't necessarily numeric.
 
@@ -124,7 +124,7 @@ On success, a list of hash references is returned. Each
 hash contains a C<id> (the ticket id), C<complete> and, if
 completed, C<photoid> members. C<invalid> may also be returned.
 Status codes (for C<complete>) are as documented at
-L<http://flickr.com/services/api/upload.async.html> and, actually, the
+L<https://www.flickr.com/services/api/upload.async.html> and, actually, the
 returned fields are identical to those listed in the C<ticket> tag of the
 response.  The returned list isn't guaranteed to be in any particular order.
 
@@ -238,7 +238,7 @@ according to the Flickr API authentication rules.
 Returns the resulting identifier of the uploaded photo (or ticket for
 asynchronous uploads) on success, C<undef> on failure. According to the
 API documentation, after an upload the user should be directed to the
-page L<http://www.flickr.com/tools/uploader_edit.gne?ids=$photoid>.
+page L<https://www.flickr.com/tools/uploader_edit.gne?ids=$photoid>.
 
 =cut
 
@@ -497,7 +497,7 @@ __END__
 
 =head1 SEE ALSO
 
-L<http://flickr.com/services/api/>
+L<https://www.flickr.com/services/api/>
 
 L<Flickr::API>
 
