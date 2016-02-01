@@ -119,13 +119,14 @@ if( $auth ) {
 	exit 0;
 }
 
-pod2usage(1) unless exists $args{'auth_token'};
+die "No auth token found; use --auth to generate or --auth_token to specify.\n"
+    unless exists $args{'auth_token'};
 
 if( $check ) {
 	exit( checkToken( $ua, $args{api_key}, $args{auth_token} ) );
 }
 
-pod2usage(1) unless @ARGV;
+die "No image specified to upload.\n" unless @ARGV;
 
 $args{'tags'} = join( " ", @tags ) if @tags;
 
