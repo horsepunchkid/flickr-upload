@@ -5,6 +5,8 @@ use warnings;
 
 use LWP::UserAgent;
 use HTTP::Request::Common;
+use Net::OAuth;
+use URI::Escape;
 use Flickr::API;
 use XML::Simple qw(:strict);
 use Digest::MD5 qw(md5_hex);
@@ -45,15 +47,37 @@ Upload an image to L<flickr.com>.
 
 =head2 new
 
+=over
+
+=item Using Flickr Authentication
+
 	my $ua = Flickr::Upload->new(
 		{
 			'key' => '90909354',
 			'secret' => '37465825'
 		});
 
-Instantiates a L<Flickr::Upload> instance. The C<key> argument is your
-API key and the C<secret> is the API secret associated with it. To get an
-API key and secret, go to L<https://www.flickr.com/services/api/key.gne>.
+=item Using OAuth Authentication
+
+	my $ua = Flickr::Upload->new(
+		{
+			'consumer_key' => 'your_api_key',
+			'consumer_secret' => 'your_app_secret',
+		});
+
+=item Retrieve saved configuration (possibly including OAuth access token)
+
+	my $config_file = "$ENV{HOME}/saved-flickr.st";
+	my $ua = Flickr::Upload->import_storable_config($config_file);
+
+=back
+
+Instantiates a L<Flickr::Upload> instance, using either the Flickr
+Authentication or the OAuth Authentication. The C<key> or
+C<consumer_key> argument is your API key and the C<secret> or
+C<consumer_secret> argument is the API secret associated with it. To
+get an API key and secret, go to
+L<https://www.flickr.com/services/api/key.gne>.
 
 The resulting L<Flickr::Upload> instance is a subclass of L<Flickr::API>
 and can be used for any other Flickr API calls.  As such,
@@ -73,9 +97,14 @@ L<Flickr::Upload> is also a subclass of L<LWP::UserAgent>.
 
 Taking a L<Flickr::Upload> instance C<$ua> as an argument, this is
 basically a direct interface to the Flickr Photo Upload API. Required
-parameters are C<photo> and C<auth_token>.  Note that the C<auth_token>
-must have been issued against the API key and secret used to instantiate
-the uploader.
+parameters are C<photo> and, when using Flickr Authentication,
+C<auth_token>.  Note that the C<auth_token> must have been issued
+against the API key and secret used to instantiate the uploader.
+
+When using OAuth, C<auth_token> is not required, and the
+L<Flickr::Upload> instance must instead contain a valid L<Net::OAuth>
+access token which can be added by calling the L<Flickr::API>
+C<oauth_access_token> method.
 
 Returns the resulting identifier of the uploaded photo on success,
 C<undef> on failure. According to the API documentation, after an upload the
@@ -97,7 +126,7 @@ sub upload {
 
 	# these are the only things _required_ by the uploader.
 	die "Can't read photo '$args{'photo'}'" unless $args{'photo'} and -f $args{'photo'};
-	die "Missing 'auth_token'" unless defined $args{'auth_token'};
+	die "Missing 'auth_token'" unless $self->is_oauth or defined $args{'auth_token'};
 
 	# create a request object and execute it
 	my $req = $self->make_upload_request( %args );
@@ -196,7 +225,11 @@ sub make_upload_request {
 	my %args = @_;
 
 	# _required_ by the uploader.
-	die "Missing 'auth_token' argument" unless $args{'auth_token'};
+	unless ($self->is_oauth) {
+		die "Missing 'auth_token' argument" unless $args{'auth_token'};
+	} else {
+		croak "OAuth access token needed" unless defined $self->{oauth}->{token};
+	}
 
 	my $uri = $args{'uri'} || 'https://api.flickr.com/services/upload/';
 
@@ -205,13 +238,38 @@ sub make_upload_request {
 
 	# Flickr::API includes this with normal requests, but we're building a custom
 	# message.
-	$args{'api_key'} = $self->{'api_key'};
+	$args{'api_key'} = $self->{'api_key'} unless $self->is_oauth;
 
 	# photo is _not_ included in the sig
 	my $photo = $args{photo};
 	delete $args{photo};
 
-	$args{'api_sig'} = $self->_sign_args(\%args);
+	unless( $self->is_oauth ) {
+		$args{'api_sig'} = $self->_sign_args(\%args);
+	} else {
+		my %oauth = (
+			'nonce'			=> $self->_make_nonce(),
+			'consumer_key'		=> $self->{oauth}->{consumer_key},
+			'consumer_secret'	=> $self->{oauth}->{consumer_secret},
+			'timestamp'		=> time,
+			'signature_method'	=> $self->{oauth}->{signature_method},
+			'version'		=> $self->{oauth}->{version},
+			'token'			=> $self->{oauth}->{token},
+			'token_secret'		=> $self->{oauth}->{token_secret},
+		);
+		$oauth{extra_params} = \%args;
+		$oauth{request_method} = 'POST';
+		$oauth{request_url} = $uri;
+		$Net::OAuth::PROTOCOL_VERSION = Net::OAuth::PROTOCOL_VERSION_1_0A;
+		my $req = Net::OAuth->request( "protected resource" )->new( %oauth );
+		$req->sign();
+		my $tmp_body = $req->to_post_body();
+		%args = ();
+		foreach (split '&', $tmp_body) {
+			my ($name, $val) = split '=', $_, 2;
+			$args{$name} = URI::Escape::uri_unescape( $val );
+		}
+	}
 
 	# unlikely that the caller would set up the photo as an array,
 	# but...
