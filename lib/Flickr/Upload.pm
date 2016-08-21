@@ -125,7 +125,7 @@ sub upload {
 	my %args = @_;
 
 	# these are the only things _required_ by the uploader.
-	die "Can't read photo '$args{'photo'}'" unless $args{'photo'} and -f $args{'photo'};
+	die "Can't read photo '$args{'photo'}'" unless $args{'photo'} and (ref $args{'photo'} eq "ARRAY" or -f $args{'photo'});
 	die "Missing 'auth_token'" unless $self->is_oauth or defined $args{'auth_token'};
 
 	# create a request object and execute it
