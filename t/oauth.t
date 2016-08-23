@@ -6,6 +6,7 @@ my $saved_config = 't/saved_config';
 -r $saved_config or (print STDERR "No stored Flickr::API config file\n" && exit 0);
 my $ua = Flickr::Upload->import_storable_config($saved_config);
 ok(defined $ua);
+bless $ua, 'Flickr::Upload';
 
 my $rc = $ua->upload(
 	'photo' => 't/testimage.jpg',

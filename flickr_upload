@@ -15,14 +15,17 @@ my @tags = ();
 my $help = 0;
 my $man = 0;
 my $auth = 0;
+my $oauth = 0;
 my $progress = 0;
 my $check = 0;
 my $report = 1;
 my $reverse = 0;
 my $photoset;
 my @photo_ids;
+my $upload_config = "$ENV{HOME}/.flickrrc";
+my $oauth_config = "$ENV{HOME}/.flickroauth.st";
 
-if( open CONFIG, "< $ENV{HOME}/.flickrrc" ) {
+if( open CONFIG, "< $upload_config" ) {
 	while( <CONFIG> ) {
 		chomp;
 		s/#.*$//;	# strip comments
@@ -57,6 +60,7 @@ GetOptions(
 	'key=s' => \$api_key,
 	'secret=s' => \$not_so_secret,
 	'auth' => \$auth,
+	'oauth' => \$oauth,
 	'progress!' => \$progress,
 	'check' => \$check,
 	'report!' => \$report,
@@ -119,8 +123,53 @@ if( $auth ) {
 	exit 0;
 }
 
-die "No auth token found; use --auth to generate or --auth_token to specify.\n"
-    unless exists $args{'auth_token'};
+if($oauth) {
+    # See Flickr::API SYNOPSIS on OAuth authentication, upon which this is heavily based
+    $ua = Flickr::Upload->new({
+        consumer_key => $api_key,
+        consumer_secret => $not_so_secret
+    });
+    my $response = $ua->oauth_request_token({ 'callback' => 'https://127.0.0.1/' });
+    my %request_token;
+    if($response eq 'ok') {
+        my $uri = $ua->oauth_authorize_uri({ 'perms' => 'write' });
+
+        print "Please open this URL in your browser and follow the instructions:\n\n";
+        print "$uri\n\n";
+        print "When you authorize this app, you'll be directed to a dummy URL\n";
+        print "that contains a confirmation code. Paste that URL here.\n\n";
+        print "URL: ";
+        my $input = <STDIN>;
+        chomp $input;
+
+        my ($callback_returned, $token_received) = split /\?/, $input;
+        my @params = split /\&/, $token_received;
+        foreach my $pair (@params) {
+            my ($key,$val) = split(/=/,$pair);
+            $key =~ s/oauth_//;
+            $request_token{$key}=$val;
+
+        }
+        die "Bad OAuth token received! verifier => '$request_token{verifier}', token => '$request_token{token}'\n"
+            unless $request_token{verifier} =~ /^[0-9a-f]+$/ && $request_token{verifier} =~ /^[0-9a-f-]+$/;
+    }
+    else {
+        die "Unable to initiate OAuth authorization. Response from Flickr was: '$response'\n";
+    }
+    my $ac_rc = $ua->oauth_access_token(\%request_token);
+    if($ac_rc eq 'ok') {
+        print "Saving OAuth credentials to $oauth_config\n";
+        $ua->export_storable_config($oauth_config);
+    }
+}
+
+if(!exists $args{'auth_token'} && -r $oauth_config) {
+    $ua = Flickr::Upload->import_storable_config($oauth_config);
+    bless $ua, 'Flickr::Upload';
+}
+
+die "No auth token or OAuth credentials found.\nUse --auth or --oauth to generate credentials or --auth_token to specify a token.\n"
+    unless exists $args{'auth_token'} || $ua->is_oauth;
 
 if( $check ) {
 	exit( checkToken( $ua, $args{api_key}, $args{auth_token} ) );
@@ -331,6 +380,10 @@ for actually uploading images.
 
 Authentication token. You B<must> get an authentication token using
 C<--auth> before you can upload images. See the L<EXAMPLES> section.
+
+=item --oauth
+
+Interactively perform OAuth authorization with Flickr. The user will get a URL to visit at Flickr at which Flickr::Upload must be granted write permissions. After granting permission, the user will be redirected to a dummy URL that contains an OAuth token and verifier. This user will paste this URL at the prompt, and L<flickr_upload> will save the resulting credentials in C<~/.flickroauth.st>.
 
 =item --title <title>
 

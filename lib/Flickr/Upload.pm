@@ -13,7 +13,7 @@ use Digest::MD5 qw(md5_hex);
 use Encode qw(encode_utf8);
 use Carp;
 
-our $VERSION = '1.51';
+our $VERSION = '1.6';
 
 our @ISA = qw(Flickr::API);
 

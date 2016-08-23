@@ -22,6 +22,7 @@ DEPENDENCIES
 - Pod::Usage
 - Getopt::Long
 - XML::Simple
+- Net::OAuth
 
 EXAMPLES
 ========
